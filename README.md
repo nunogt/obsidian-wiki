@@ -6,6 +6,103 @@ Instead of asking an LLM the same questions over over (or doing RAG every time),
 
 We took that and built a framework around it. The whole thing is a set of markdown skill files that any AI coding agent (Claude Code, Cursor, Windsurf, whatever you use) can read and execute. You point it at your Obsidian vault and tell it what to do.
 
+## Quick Start
+
+```bash
+git clone https://github.com/Ar9av/obsidian-wiki.git
+cd obsidian-wiki
+bash setup.sh      # ← configures your agent automatically
+```
+
+Set your vault path in `.env`:
+
+```
+OBSIDIAN_VAULT_PATH=/path/to/your/vault
+```
+
+Open the project in your agent and say **"set up my wiki"**. That's it.
+
+## Agent Compatibility
+
+This framework works with **any AI coding agent** that can read files. The `setup.sh` script automatically configures skill discovery for each one:
+
+| Agent | Bootstrap File | Skills Directory | Slash Commands |
+|---|---|---|---|
+| **[Claude Code](https://claude.ai/code)** | `CLAUDE.md` | `.claude/skills/` | ✅ `/obsidian-ingest`, `/wiki-status`, etc. |
+| **[Cursor](https://cursor.com)** | `.cursor/rules/obsidian-wiki.mdc` | `.cursor/skills/` | ✅ `/obsidian-ingest`, `/wiki-status`, etc. |
+| **[Windsurf](https://windsurf.com)** | `.windsurf/rules/obsidian-wiki.md` | `.windsurf/skills/` | ✅ via Cascade |
+| **[Codex (OpenAI)](https://openai.com/codex)** | `AGENTS.md` | — (uses AGENTS.md) | — |
+| **[Antigravity (Google)](https://aistudio.google.com)** | `GEMINI.md` | `.agents/skills/` | ✅ via skill triggers |
+| **[GitHub Copilot](https://github.com/features/copilot)** | `.github/copilot-instructions.md` | — | — |
+
+> **How it works:** Each agent has its own convention for discovering skills. `setup.sh` symlinks the canonical `.skills/` directory into each agent's expected location, and creates the bootstrap file that tells the agent about the project. You write skills once, every agent can use them.
+
+### Manual setup (if you prefer)
+
+If you don't want to run `setup.sh`, you can configure your agent manually:
+
+<details>
+<summary><b>Claude Code</b></summary>
+
+Skills are auto-discovered from `.claude/skills/`. Either:
+- Run `setup.sh` to create symlinks, OR
+- Copy `.skills/*` to `.claude/skills/`
+
+The `CLAUDE.md` file at the repo root is automatically loaded as project context.
+
+```bash
+cd /path/to/obsidian-wiki && claude "set up my wiki"
+```
+</details>
+
+<details>
+<summary><b>Cursor</b></summary>
+
+Skills are auto-discovered from `.cursor/skills/`. The `.cursor/rules/obsidian-wiki.mdc` file provides always-on context. Either:
+- Run `setup.sh` to create symlinks, OR
+- Copy `.skills/*` to `.cursor/skills/`
+
+Open the project in Cursor and type `/obsidian-setup` in the chat.
+</details>
+
+<details>
+<summary><b>Windsurf</b></summary>
+
+Cascade reads rules from `.windsurf/rules/` and skills from `.windsurf/skills/`. Either:
+- Run `setup.sh` to create symlinks, OR
+- Copy `.skills/*` to `.windsurf/skills/`
+
+Open in Windsurf and tell Cascade: "set up my wiki".
+</details>
+
+<details>
+<summary><b>Codex (OpenAI)</b></summary>
+
+Codex reads the `AGENTS.md` file at the repo root for project context. Skills are referenced by path in AGENTS.md — no symlinks needed.
+
+```bash
+cd /path/to/obsidian-wiki && codex "set up my wiki"
+```
+</details>
+
+<details>
+<summary><b>Antigravity / Gemini</b></summary>
+
+Gemini agents read `GEMINI.md` at the repo root and discover skills from `.agents/skills/` or `.skills/`. Either:
+- Run `setup.sh` to create symlinks, OR  
+- The `.skills/` directory is already compatible
+
+Open in AI Studio and say "set up my wiki".
+</details>
+
+<details>
+<summary><b>GitHub Copilot</b></summary>
+
+Copilot reads `.github/copilot-instructions.md` for project context. Skills are referenced by path — Copilot will follow the instructions to read the relevant SKILL.md files.
+
+Use Copilot Chat in VS Code and say "set up my wiki".
+</details>
+
 ## How it works
 
 Every ingest runs through four stages:
@@ -28,57 +125,72 @@ A `.manifest.json` tracks every source that's been ingested — path, timestamps
 
 - **Archive and rebuild.** When the wiki drifts too far from your sources, you can archive the whole thing (timestamped snapshot, nothing lost) and rebuild from scratch. Or restore any previous archive.
 
-- **Ingest** Documents, PDFs, Claude Code conversation history (`~/.claude`), Antigravity exports/state (`~/.antigravity`), Codex history (`~/.codex/sessions/`), Windsurf (`~/.windsurf`), ChatGPT exports, Slack logs, meeting transcripts, raw text There's a specific skill for Claude history that understands the JSONL format and memory files, and a catch-all skill that figures out whatever format you throw at it.
+- **Multi-agent ingest.** Documents, PDFs, Claude Code history (`~/.claude`), Codex sessions (`~/.codex/`), Windsurf data (`~/.windsurf`), ChatGPT exports, Slack logs, meeting transcripts, raw text. There's a specific skill for Claude history that understands the JSONL format and memory files, and a catch-all skill that figures out whatever format you throw at it.
 
 - **Audit and lint.** Find orphaned pages, broken wikilinks, stale content, contradictions, missing frontmatter. See a dashboard of what's been ingested vs what's pending.
-
-## Setup
-
-```bash
-git clone https://github.com/Ar9av/obsidian-wiki.git
-cd obsidian-wiki
-cp .env.example .env
-```
-
-Set your vault path in `.env`:
-
-```
-OBSIDIAN_VAULT_PATH=/path/to/your/vault
-```
-
-That's it. Open the project in your coding agent and tell it to set up your wiki. Works on Claude Code, Cursor, Windsurf, Codex — any agent that can read files and run shell commands.
-
-With Claude Code, for example:
-
-```bash
-cd /path/to/obsidian-wiki && claude "set up my wiki at /path/to/your/vault"
-```
-
-In my case:
-
-```bash
-cd ~/Documents/projects/obsidian-wiki && claude "set up my wiki"
-```
-
-(With `OBSIDIAN_VAULT_PATH` already set in `.env`, you don't need to repeat the path.) See [SETUP.md](SETUP.md) for the full details.
 
 ## Skills
 
 Everything lives in `.skills/`. Each skill is a markdown file the agent reads when triggered:
 
-| Skill | What it does |
-|---|---|
-| `obsidian-setup` | Initialize vault structure |
-| `obsidian-ingest` | Distill documents into wiki pages |
-| `claude-history-ingest` | Mine your `~/.claude` conversations and memories |
-| `data-ingest` | Ingest any text — chat exports, logs, transcripts |
-| `wiki-status` | Show what's ingested, what's pending, the delta |
-| `wiki-rebuild` | Archive, rebuild from scratch, or restore |
-| `obsidian-query` | Answer questions from the wiki |
-| `obsidian-lint` | Find broken links, orphans, contradictions |
-| `llm-wiki` | The core pattern and architecture reference |
-| `skill-creator` | Create new skills |
+| Skill | What it does | Slash Command |
+|---|---|---|
+| `obsidian-setup` | Initialize vault structure | `/obsidian-setup` |
+| `obsidian-ingest` | Distill documents into wiki pages | `/obsidian-ingest` |
+| `claude-history-ingest` | Mine your `~/.claude` conversations and memories | `/claude-history-ingest` |
+| `data-ingest` | Ingest any text — chat exports, logs, transcripts | `/data-ingest` |
+| `wiki-status` | Show what's ingested, what's pending, the delta | `/wiki-status` |
+| `wiki-rebuild` | Archive, rebuild from scratch, or restore | `/wiki-rebuild` |
+| `obsidian-query` | Answer questions from the wiki | `/obsidian-query` |
+| `obsidian-lint` | Find broken links, orphans, contradictions | `/obsidian-lint` |
+| `llm-wiki` | The core pattern and architecture reference | `/llm-wiki` |
+| `skill-creator` | Create new skills | `/skill-creator` |
+
+> **Note:** Slash commands (`/skill-name`) work in Claude Code, Cursor, and Windsurf. In other agents, just describe what you want and the agent will find the right skill.
+
+## Project Structure
+
+```
+obsidian-wiki/
+├── .skills/                          # ← Canonical skill definitions (source of truth)
+│   ├── obsidian-setup/SKILL.md
+│   ├── obsidian-ingest/SKILL.md
+│   ├── claude-history-ingest/SKILL.md
+│   ├── data-ingest/SKILL.md
+│   ├── wiki-status/SKILL.md
+│   ├── wiki-rebuild/SKILL.md
+│   ├── obsidian-query/SKILL.md
+│   ├── obsidian-lint/SKILL.md
+│   ├── llm-wiki/SKILL.md
+│   └── skill-creator/SKILL.md
+│
+├── CLAUDE.md                         # Bootstrap → Claude Code
+├── GEMINI.md                         # Bootstrap → Gemini / Antigravity
+├── AGENTS.md                         # Bootstrap → Codex / OpenAI
+├── .cursor/rules/obsidian-wiki.mdc   # Bootstrap → Cursor
+├── .windsurf/rules/obsidian-wiki.md  # Bootstrap → Windsurf
+├── .github/copilot-instructions.md   # Bootstrap → GitHub Copilot
+│
+├── .claude/skills/   → symlinks to .skills/*  (created by setup.sh)
+├── .cursor/skills/   → symlinks to .skills/*  (created by setup.sh)
+├── .windsurf/skills/ → symlinks to .skills/*  (created by setup.sh)
+├── .agents/skills/   → symlinks to .skills/*  (created by setup.sh)
+│
+├── setup.sh                          # One-command agent setup
+├── .env.example                      # Configuration template
+├── README.md                         # You are here
+└── SETUP.md                          # Detailed setup guide
+```
 
 ## Contributing
 
 This is early. The skills work but there's a lot of room to make them smarter — better cross-referencing, smarter deduplication, handling larger vaults, new ingest sources. If you've been thinking about this problem or have a workflow that could be a skill, PRs are welcome.
+
+### Adding a new skill
+
+1. Create a folder in `.skills/your-skill-name/`
+2. Add a `SKILL.md` with YAML frontmatter (`name`, `description`) and markdown instructions
+3. Run `bash setup.sh` to symlink into all agent directories
+4. Test with your agent by saying something that matches the description
+
+See `.skills/skill-creator/SKILL.md` for the full guide on writing effective skills.
