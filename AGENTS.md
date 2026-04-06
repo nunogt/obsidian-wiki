@@ -6,7 +6,7 @@ This project is a **skill-based framework** for building and maintaining an Obsi
 
 1. Read `.env` for `OBSIDIAN_VAULT_PATH` — this is where the wiki lives.
 2. Read `.manifest.json` at the vault root to see what's already been ingested.
-3. Skills are in `.skills/`. Each subfolder has a `SKILL.md` with full instructions.
+3. Skills are in `.skills/` (also symlinked to `.claude/skills/`). Each subfolder has a `SKILL.md`.
 
 ## When to Use Skills
 
@@ -22,6 +22,7 @@ This project is a **skill-based framework** for building and maintaining an Obsi
 | "rebuild" / "start over" / "archive" / "restore" | `.skills/wiki-rebuild/SKILL.md` |
 | "link my pages" / "cross-reference" / "connect my wiki" | `.skills/cross-linker/SKILL.md` |
 | "fix my tags" / "normalize tags" / "tag audit" | `.skills/tag-taxonomy/SKILL.md` |
+| "update wiki" / "sync to wiki" / "save this to my wiki" | `.skills/wiki-update/SKILL.md` |
 | "create a new skill" | `.skills/skill-creator/SKILL.md` |
 
 ## Key Rules
