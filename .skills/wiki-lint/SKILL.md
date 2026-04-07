@@ -88,6 +88,21 @@ Verify `index.md` matches the actual page inventory.
 - Compare pages listed in `index.md` to actual files on disk
 - Check that summaries in `index.md` still match page content
 
+### 7. Provenance Drift
+
+Check whether pages are being honest about how much of their content is inferred vs extracted. See the Provenance Markers section in `llm-wiki` for the convention.
+
+**How to check:**
+- For each page, count sentences/bullets in the body and how many end with `^[inferred]` or `^[ambiguous]`
+- Compute the rough fractions (`extracted`, `inferred`, `ambiguous`)
+- **Speculation-heavy:** flag pages where `inferred + ambiguous > 0.6` of total content. The wiki is supposed to compile knowledge, not speculate.
+- **Drift:** if the page has a `provenance:` frontmatter block, flag it when any field is more than 0.20 off from the recomputed value.
+- **Skip** pages that have no `provenance:` frontmatter and no markers — they're treated as fully extracted by convention (the check is opt-in for older pages).
+
+**How to fix:**
+- For drift: update the `provenance:` frontmatter to match reality.
+- For speculation-heavy: re-ingest the page from its sources, or split the inferred content into a `synthesis/` page (where speculation is expected) and leave the original page tighter.
+
 ## Output Format
 
 Report findings as a structured list:
@@ -112,13 +127,17 @@ Report findings as a structured list:
 
 ### Index Issues (N found)
 - `concepts/new-page.md` exists on disk but not in index.md
+
+### Provenance Issues (N found)
+- `concepts/scaling.md` — speculation-heavy: 72% of bullets marked `^[inferred]`
+- `entities/some-tool.md` — drift: frontmatter says inferred=0.10, recomputed=0.45
 ```
 
 ## After Linting
 
 Append to `log.md`:
 ```
-- [TIMESTAMP] LINT issues_found=N orphans=X broken_links=Y stale=Z contradictions=W
+- [TIMESTAMP] LINT issues_found=N orphans=X broken_links=Y stale=Z contradictions=W prov_issues=P
 ```
 
 Offer to fix issues automatically or let the user decide which to address.

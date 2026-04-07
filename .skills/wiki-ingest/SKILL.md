@@ -58,6 +58,13 @@ From the source, identify:
 - **Relationships** between concepts (what connects to what)
 - **Open questions** the source raises but doesn't answer
 
+**Track provenance per claim as you go.** For each claim you extract, mentally tag it as:
+- *Extracted* — the source explicitly states this
+- *Inferred* — you're generalizing across sources, drawing an implication, or filling a gap
+- *Ambiguous* — sources disagree, or the source is vague
+
+You'll apply markers in Step 5. Don't conflate these — the wiki's value depends on the user being able to tell signal from synthesis.
+
 ### Step 3: Determine Project Scope
 
 If the source belongs to a specific project:
@@ -91,6 +98,12 @@ For each page in your plan:
 - Update the `updated` timestamp in frontmatter
 - Add the new source to the `sources` list
 - Resolve any contradictions between old and new information (note them if unresolvable)
+
+**Apply provenance markers** per the convention in `llm-wiki` (Provenance Markers section):
+- Inferred claims get a trailing `^[inferred]`
+- Ambiguous/contested claims get a trailing `^[ambiguous]`
+- Extracted claims need no marker
+- After writing the page, count rough fractions and write them to a `provenance:` frontmatter block (extracted/inferred/ambiguous summing to ~1.0). When updating an existing page, recompute and update the block.
 
 ### Step 6: Update Cross-References
 
@@ -134,6 +147,7 @@ After ingesting, verify:
 - [ ] `index.md` reflects all changes
 - [ ] `log.md` has the ingest entry
 - [ ] Source attribution is present for every new claim
+- [ ] Inferred and ambiguous claims are marked with `^[inferred]` / `^[ambiguous]`; `provenance:` frontmatter block is present on new and updated pages
 
 ## Reference
 

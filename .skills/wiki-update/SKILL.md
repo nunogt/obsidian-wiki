@@ -104,14 +104,29 @@ title: Page Title
 category: concepts
 tags: [tag1, tag2]
 sources: [projects/<project-name>]
+provenance:
+  extracted: 0.6
+  inferred: 0.35
+  ambiguous: 0.05
 created: TIMESTAMP
 updated: TIMESTAMP
 ---
 
 # Page Title
 
-Content here. Use [[wikilinks]] to connect to other pages.
+- A fact the codebase or a doc actually states.
+- A reason the design works this way. ^[inferred]
+
+Use [[wikilinks]] to connect to other pages.
 ```
+
+**Apply provenance markers** per `llm-wiki` (Provenance Markers section). For project sync specifically:
+
+- **Extracted** — anything visible in the code, config, or a doc/commit message: file structure, dependencies, function signatures, what a file does.
+- **Inferred** — *why* a decision was made, design rationale, trade-offs, "the team chose X because Y" — unless a commit message, doc, or ADR states it explicitly.
+- **Ambiguous** — when the code and docs disagree, or when there's clearly an in-progress migration with two patterns living side by side.
+
+Compute the rough fractions and write the `provenance:` block on every new/updated page.
 
 ### Updating vs creating
 

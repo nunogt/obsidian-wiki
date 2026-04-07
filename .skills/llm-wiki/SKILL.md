@@ -157,6 +157,10 @@ category: concepts
 tags: [ml, architecture]
 aliases: [alternate name]
 sources: [papers/attention.pdf]
+provenance:
+  extracted: 0.72
+  inferred: 0.25
+  ambiguous: 0.03
 created: 2024-03-15T10:30:00Z
 updated: 2024-03-15T10:30:00Z
 ---
@@ -167,7 +171,11 @@ One-paragraph summary of what this page covers.
 
 ## Key Ideas
 
-The core content, synthesized from sources. Use [[wikilinks]] to connect to related pages.
+- The source's central claim, paraphrased directly.
+- A generalization the source implies but doesn't state outright. ^[inferred]
+- A figure two sources disagree on. ^[ambiguous]
+
+Use [[wikilinks]] to connect to related pages.
 
 ## Open Questions
 
@@ -178,6 +186,40 @@ Things that are unresolved or need more sources.
 - [[references/attention-is-all-you-need]] — Original paper
 ```
 
+## Provenance Markers
+
+Every claim on a wiki page has one of three provenance states. Mark them inline so the reader (and future ingest passes) can tell signal from synthesis.
+
+| State | Marker | Meaning |
+|---|---|---|
+| **Extracted** | *(no marker — default)* | A paraphrase of something a source actually says. |
+| **Inferred** | `^[inferred]` suffix | An LLM-synthesized claim — a connection, generalization, or implication the source doesn't state directly. |
+| **Ambiguous** | `^[ambiguous]` suffix | Sources disagree, or the source is unclear. |
+
+Example:
+
+```markdown
+- Transformers parallelize across positions, unlike RNNs.
+- This is why they scale better on modern hardware. ^[inferred]
+- GPT-4 was trained on roughly 13T tokens. ^[ambiguous]
+```
+
+**Why this syntax:**
+- `^[...]` is footnote-adjacent in Obsidian — renders cleanly and never collides with `[[wikilinks]]`.
+- Inline (suffix) so a single bullet stays a single bullet.
+- Default = extracted means existing pages without markers stay valid.
+
+**Frontmatter summary:** Optionally surface the rough mix at the page level so the user can scan for speculation-heavy pages without reading them:
+
+```yaml
+provenance:
+  extracted: 0.72   # rough fraction of sentences/bullets with no marker
+  inferred: 0.25
+  ambiguous: 0.03
+```
+
+These are best-effort numbers written by the ingest skill at create/update time. `wiki-lint` recomputes them and flags drift. The block is optional — pages without it are treated as fully extracted by convention.
+
 ## Core Principles
 
 1. **Compile, don't retrieve.** The wiki is pre-compiled knowledge. When you ingest a source, update every relevant page — don't just create a summary of the source.
@@ -186,9 +228,11 @@ Things that are unresolved or need more sources.
 
 3. **Provenance matters.** Every claim should trace to a source. When updating a page, note which source prompted the update.
 
-4. **Human curates, LLM maintains.** The human decides what sources to add and what questions to ask. The LLM handles the bookkeeping — updating cross-references, maintaining consistency, noting contradictions.
+4. **Mark inferences.** Default sentences are extracted. Mark synthesized claims with `^[inferred]` and contested claims with `^[ambiguous]`. A wiki that hides its guessing rots silently; one that marks it stays trustworthy.
 
-5. **Obsidian is the IDE.** The user browses and explores the wiki in Obsidian. Everything must be valid Obsidian markdown with working wikilinks.
+5. **Human curates, LLM maintains.** The human decides what sources to add and what questions to ask. The LLM handles the bookkeeping — updating cross-references, maintaining consistency, noting contradictions.
+
+6. **Obsidian is the IDE.** The user browses and explores the wiki in Obsidian. Everything must be valid Obsidian markdown with working wikilinks.
 
 ## Environment Variables
 

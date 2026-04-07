@@ -187,6 +187,13 @@ For each project with content, create or update the project overview page at `pr
 
 **Important:** Distill the _knowledge_, not the conversation. Don't write "In a conversation on March 15, the user asked about X." Write the knowledge itself, with the conversation as a source attribution.
 
+**Mark provenance** per the convention in `llm-wiki` (Provenance Markers section):
+
+- **Memory files** are mostly extracted — the user wrote them by hand and they're already distilled. Treat memory-derived claims as extracted unless you're stitching together claims from multiple memory files.
+- **Conversation distillation** is mostly inferred. You're synthesizing a coherent claim from many turns of dialogue, often filling in implicit reasoning. Apply `^[inferred]` liberally to synthesized patterns, generalizations across sessions, and "what the user really meant" interpretations.
+- Use `^[ambiguous]` when the user changed their mind across sessions or when assistant and user contradicted each other and the resolution is unclear.
+- Write a `provenance:` frontmatter block on every new/updated page summarizing the rough mix.
+
 ## Step 6: Update Manifest, Journal, and Special Files
 
 ### Update `.manifest.json`
