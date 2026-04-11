@@ -1,5 +1,7 @@
 # obsidian-wiki
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Ar9av/obsidian-wiki)
+
 A knowledge mgmt system inspired by [gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) published by Andrej Karpathy about maintaining a personal knowledge base with LLMs : the "LLM Wiki" pattern.
 
 Instead of asking an LLM the same questions over over (or doing RAG every time), you compile knowledge once into interconnected markdown files and keep them current. In this case Obsidian is the viewer and the LLM is the maintainer.
@@ -24,7 +26,7 @@ Open the project in your agent and say **"set up my wiki"**. That's it.
 
 This framework works with **any AI coding agent** that can read files. The `setup.sh` script automatically configures skill discovery for each one:
 
-| Agent                                                     | Bootstrap File                     | Skills Directory                | Slash Commands                          |
+| Agent                                                     | Bootstrap Files                     | Skills Directory                | Slash Commands                          |
 | --------------------------------------------------------- | ---------------------------------- | ------------------------------- | --------------------------------------- |
 | **[Claude Code](https://claude.ai/code)**                 | `CLAUDE.md`                        | `.claude/skills/`               | ✅ `/wiki-ingest`, `/wiki-status`, etc. |
 | **[Cursor](https://cursor.com)**                          | `.cursor/rules/obsidian-wiki.mdc`  | `.cursor/skills/`               | ✅ `/wiki-ingest`, `/wiki-status`, etc. |
@@ -33,6 +35,7 @@ This framework works with **any AI coding agent** that can read files. The `setu
 | **[Antigravity (Google)](https://aistudio.google.com)**   | `GEMINI.md`                        | `~/.gemini/antigravity/skills/` | `update wiki`                           |
 | **[OpenClaw](https://openclaw.ai)**                       | `AGENTS.md`                        | `.agents/skills/` + `~/.agents/skills/` | — (trigger by phrase)           |
 | **[GitHub Copilot](https://github.com/features/copilot)** | `.github/copilot-instructions.md`  | —                               | —                                       |
+| **[Kilocode](https://kilo.ai/)**                          | `AGENTS.md` (primary) or `CLAUDE.md` (compatibility)         | `.agents/skills/` + `.claude/skills/` | ✅ `/wiki-ingest`, `/wiki-status`, etc. |
 
 > **How it works:** Each agent has its own convention for discovering skills. `setup.sh` symlinks the canonical `.skills/` directory into each agent's expected location, and creates the bootstrap file that tells the agent about the project. You write skills once, every agent can use them.
 
@@ -251,9 +254,9 @@ obsidian-wiki/
 │   ├── wiki-export/SKILL.md
 │   └── skill-creator/SKILL.md
 │
-├── CLAUDE.md                         # Bootstrap → Claude Code
+├── CLAUDE.md                         # Bootstrap → Claude Code / Kilocode
 ├── GEMINI.md                         # Bootstrap → Gemini / Antigravity
-├── AGENTS.md                         # Bootstrap → Codex / OpenAI
+├── AGENTS.md                         # Bootstrap → Codex / OpenAI / Kilocode
 ├── .cursor/rules/obsidian-wiki.mdc   # Bootstrap → Cursor
 ├── .windsurf/rules/obsidian-wiki.md  # Bootstrap → Windsurf
 ├── .github/copilot-instructions.md   # Bootstrap → GitHub Copilot

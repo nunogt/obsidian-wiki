@@ -100,7 +100,8 @@ Every page needs YAML frontmatter:
 
 ```markdown
 ---
-title: Page Title
+title: >-
+    Page Title
 category: concepts
 tags: [tag1, tag2]
 sources: [projects/<project-name>]
@@ -114,8 +115,8 @@ created: TIMESTAMP
 updated: TIMESTAMP
 ---
 
-Use folded scalar syntax (summary: >-) for summary to keep frontmatter parser-safe across punctuation (:, #, quotes) without escaping rules.
-Keep the summary content indented by two spaces under summary: >-.
+Use folded scalar syntax (summary: >-) for title and summary to keep frontmatter parser-safe across punctuation (:, #, quotes) without escaping rules.
+Keep the title and summary contents indented by two spaces under summary: >-.
 
 # Page Title
 
