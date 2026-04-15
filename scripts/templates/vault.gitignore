@@ -1,0 +1,76 @@
+# Vault .gitignore — propagates to every laptop clone
+#
+# Keeps per-user Obsidian state out of git so pull-only laptops don't
+# accumulate dirty working trees during normal use.
+#
+# What's deliberately NOT ignored (stays tracked for cross-machine sync):
+#   .obsidian/app.json           — core settings
+#   .obsidian/appearance.json    — theme, font size
+#   .obsidian/plugins/           — installed community plugins + their configs
+#   .obsidian/hotkeys.json       — custom hotkeys (personal but valuable to sync)
+#   .obsidian/core-plugins.json  — which core plugins are enabled
+
+# Per-user workspace state (changes every time you open/close Obsidian)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/workspace.json.bak
+
+# Graph view cache (rebuilds on demand; noisy in diffs)
+.obsidian/graph.json
+
+# Obsidian's internal cache
+.obsidian/cache
+.obsidian/plugins/*/data.json.bak
+
+# Soft-deleted files (Obsidian's "move to trash" uses this)
+.trash/
+
+# Per-vault search index (Obsidian rebuilds automatically)
+.obsidian-sync
+.obsidian/search.json
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# ar9av edit-coordination lockfile (convention only; local state)
+.wiki.lock
+
+# ── Vault-self-contained workspace files (per-machine, materialized) ──
+# Produced by obsidian-wiki/scripts/kb-vault-materialize. These all live at the
+# vault root so Claude Code can run from inside the vault directly. They are
+# regenerated per-machine by the materializer.
+# See obsidian-wiki/docs/CONSOLIDATION-PANEL.md for the architectural rationale.
+
+# Materialized per-machine config (.env.template is committed; .env is generated)
+.env
+
+# Materialized Claude Code workspace
+.claude/
+
+# Symlinks to fork's AGENTS.md (different agent frameworks look for different names)
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+
+# ── Harness-integration v3 runtime state (per-machine, do not sync) ──
+# Populated by Claude Code hooks configured in .claude/settings.json.
+# See obsidian-wiki/docs/HARNESS-INTEGRATION-PROPOSAL-v3.md for the architecture.
+
+# Per-turn fold-back queue (Stop + PostCompact hook writes)
+.pending-fold-back.jsonl
+
+# Atomic-handoff files during /wiki-ingest --drain-pending
+.pending-fold-back-*.jsonl
+
+# Hook helper structured log
+_autosave.log
+
+# Nudge-counter + other hook state
+.autosave-state.json
+
+# Operator escape-hatch sentinel (touch to disable hooks per-vault)
+.fold-back-disabled

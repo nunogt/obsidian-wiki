@@ -1,0 +1,142 @@
+#!/bin/bash
+# kb-vault-new <name> [description]
+#
+# One-shot vault creator. Produces a self-contained Claude Code workspace:
+#
+#   $KB_GIT_ROOT/kb-<name>/                  ← local vault dir, own git repo
+#     ├── .env.template                       (committed — vault-specific defaults)
+#     ├── .gitignore                          (committed — vault.gitignore template)
+#     ├── .env                                (gitignored — materialized per machine)
+#     ├── .claude/settings.json               (gitignored — materialized per machine)
+#     ├── .claude/skills/*                    (gitignored — symlinks to fork)
+#     └── CLAUDE.md/AGENTS.md/GEMINI.md       (gitignored — symlinks to fork)
+#
+#   github.com/<you>/kb-<name>                (private, pushed)
+#
+# Aborts cleanly if dir or remote already exist.
+#
+# After this script succeeds:
+#   cd $KB_GIT_ROOT/kb-<name>
+#   claude --dangerously-skip-permissions
+#   > /wiki-setup
+#
+# Then commit + push the scaffolded content:
+#   cd $KB_GIT_ROOT/kb-<name>
+#   git add -A && git commit -m "scaffold: initial vault structure"
+#   git push
+
+set -euo pipefail
+
+# ── Derive KB_GIT_ROOT from this script's location unless overridden ────────
+# Expected layout: <KB_GIT_ROOT>/obsidian-wiki/scripts/kb-vault-new
+SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+FORK_DIR="$(dirname "$SCRIPT_DIR")"
+DEFAULT_GIT_ROOT="$(dirname "$FORK_DIR")"
+KB_GIT_ROOT="${KB_GIT_ROOT:-$DEFAULT_GIT_ROOT}"
+
+GIT_ROOT="$KB_GIT_ROOT"
+TEMPLATES="$FORK_DIR/scripts/templates"
+MATERIALIZE="$FORK_DIR/scripts/kb-vault-materialize"
+
+name="${1:-}"
+description="${2:-Private Obsidian vault for $name knowledge — obsidian-wiki-managed}"
+
+if [ -z "$name" ]; then
+    cat >&2 <<USAGE
+usage: kb-vault-new <name> [description]
+
+  name: lowercase, letters/digits/dash/underscore, no spaces
+        produces:
+          $GIT_ROOT/kb-<name>/           (local vault dir, own git repo)
+          github.com/<you>/kb-<name>     (private remote)
+
+examples:
+  kb-vault-new work
+  kb-vault-new research-ai "AI research reading notes"
+  kb-vault-new reading-2026
+USAGE
+    exit 1
+fi
+
+# Validate name — must be a safe filesystem + slug name
+if ! [[ "$name" =~ ^[a-z0-9][a-z0-9_-]*$ ]]; then
+    echo "error: name '$name' invalid — use lowercase letters/digits/dash/underscore, must start with alnum" >&2
+    exit 1
+fi
+
+vault="$GIT_ROOT/kb-$name"
+remote_name="kb-$name"
+
+# Abort if any piece already exists
+if [ -d "$vault" ]; then
+    echo "error: vault directory already exists: $vault" >&2; exit 1
+fi
+if gh repo view "$remote_name" >/dev/null 2>&1; then
+    echo "error: remote repo already exists: nunogt/$remote_name" >&2
+    echo "       (if you meant to clone an existing vault, use git clone instead)" >&2
+    exit 1
+fi
+
+# ── 1. Local git repo ───────────────────────────────────────
+echo "▶ initializing vault git repo: $vault"
+mkdir -p "$vault"
+cd "$vault"
+git init -b main >/dev/null
+# Inherit user config from fork repo if present, else fall back to defaults
+email=$(cd "$FORK_DIR" && git config user.email 2>/dev/null || echo "nunogt@local")
+user_name=$(cd "$FORK_DIR" && git config user.name 2>/dev/null || echo "nunogt")
+git config user.email "$email"
+git config user.name "$user_name"
+
+# ── 2. Canonical .gitignore (committed) ─────────────────────
+echo "▶ seeding .gitignore"
+cp "$TEMPLATES/vault.gitignore" .gitignore
+
+# ── 3. Per-vault .env.template (committed) ──────────────────
+# This is the vault's own configuration template, with placeholders the
+# materializer substitutes per-machine. Operator can edit this anytime to
+# customize SOURCES_DIR, CATEGORIES, etc. for this specific vault.
+echo "▶ seeding .env.template"
+cp "$TEMPLATES/profile.env" .env.template
+
+# ── 4. Initial commit ───────────────────────────────────────
+git add .gitignore .env.template
+git commit -m "chore: initial vault scaffolding
+
+Adds:
+- .gitignore (Obsidian-friendly ignore set, including v3 hook runtime files)
+- .env.template (vault config with {GIT_ROOT}/{NAME} placeholders for
+  the materializer to substitute per-machine)" >/dev/null
+echo "  committed $(git rev-parse --short HEAD)"
+
+# ── 5. GitHub remote ────────────────────────────────────────
+echo "▶ creating private GitHub repo: $remote_name"
+gh repo create "$remote_name" --private --source="$vault" --push --description "$description" >/dev/null
+echo "  pushed to $(git remote get-url origin)"
+
+# ── 6. Materialize the new vault into a working state ───────
+echo "▶ materializing vault workspace files"
+"$MATERIALIZE" "$vault"
+
+# ── 7. Next-step instructions ───────────────────────────────
+cat <<NEXT
+
+✓ vault ready
+
+  local:     $vault
+  remote:    $(gh repo view "$remote_name" --json url --jq .url)
+
+The vault is self-contained — Claude Code can run from inside it directly:
+
+  cd $vault
+  claude --dangerously-skip-permissions
+  > /wiki-setup
+
+After /wiki-setup scaffolds the directory structure, commit and push:
+
+  cd $vault
+  git add -A
+  git commit -m "scaffold: initial vault structure via /wiki-setup"
+  git push
+NEXT

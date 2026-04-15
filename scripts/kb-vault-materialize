@@ -1,0 +1,179 @@
+#!/bin/bash
+# kb-vault-materialize <vault-path> [<vault-path>...]
+#
+# Materialize the Claude Code workspace files inside one or more vault
+# directories. Each vault becomes self-contained — `cd <vault> && claude`
+# just works, no contexts/ indirection.
+#
+# What gets materialized inside the vault (all gitignored):
+#   .env                  ← from <vault>/.env.template (if present) or scripts/templates/profile.env
+#                           with {GIT_ROOT} + {VAULT_NAME} substituted
+#   .claude/settings.json ← from scripts/templates/claude-settings.json
+#                           with {GIT_ROOT} substituted (for v3 hook command paths)
+#   .claude/skills/*      ← per-skill symlinks into <fork>/.skills/
+#   CLAUDE.md             ← symlink to <fork>/AGENTS.md
+#   AGENTS.md             ← symlink to <fork>/AGENTS.md
+#   GEMINI.md             ← symlink to <fork>/AGENTS.md
+#
+# KB_GIT_ROOT derivation:
+#   Default: derived from this script's location (parent of obsidian-wiki/)
+#   Override: export KB_GIT_ROOT=/path before running
+#
+# Idempotent. Safe to run multiple times. Run after:
+#   - Fresh clone of obsidian-wiki + a vault
+#   - upstream pull / wiki-ar9av-update (skill set may have changed)
+#   - Edit to a vault's .env.template
+#   - Operator switches machines (re-derives paths for new layout)
+#
+# See obsidian-wiki/docs/CONSOLIDATION-PANEL.md for the architectural rationale
+# and obsidian-wiki/docs/HARNESS-INTEGRATION-PROPOSAL-v3.md for the hook system.
+
+set -euo pipefail
+
+# ── Derive KB_GIT_ROOT from this script's location unless overridden ────────
+# Expected layout: <KB_GIT_ROOT>/obsidian-wiki/scripts/kb-vault-materialize
+# So KB_GIT_ROOT is the grandparent of the script's dir.
+SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+FORK_DIR="$(dirname "$SCRIPT_DIR")"
+DEFAULT_GIT_ROOT="$(dirname "$FORK_DIR")"
+
+if [ -n "${KB_GIT_ROOT:-}" ]; then
+  GIT_ROOT_SOURCE="env override"
+else
+  KB_GIT_ROOT="$DEFAULT_GIT_ROOT"
+  GIT_ROOT_SOURCE="derived from script location"
+fi
+
+GIT_ROOT="$KB_GIT_ROOT"
+AR9AV="$FORK_DIR"
+TEMPLATES="$FORK_DIR/scripts/templates"
+PROFILE_TEMPLATE="$TEMPLATES/profile.env"
+SETTINGS_TEMPLATE="$TEMPLATES/claude-settings.json"
+
+# ── Pre-flight checks ──────────────────────────────────────────────────────
+if [ "$#" -eq 0 ]; then
+  cat >&2 <<USAGE
+usage: kb-vault-materialize <vault-path> [<vault-path>...]
+
+  Materialize Claude Code workspace files inside each vault directory.
+  Each vault becomes self-contained: cd <vault> && claude just works.
+
+  KB_GIT_ROOT is derived from this script's location: $DEFAULT_GIT_ROOT
+  Override with: export KB_GIT_ROOT=/path
+
+examples:
+  kb-vault-materialize ~/code/kb-ebury
+  kb-vault-materialize ~/code/kb-*               # materialize all vaults under ~/code
+USAGE
+  exit 1
+fi
+
+if [ ! -d "$AR9AV/.skills" ]; then
+  echo "error: obsidian-wiki .skills/ not found at $AR9AV/.skills" >&2
+  echo "       this script must live inside the fork's scripts/ directory" >&2
+  exit 1
+fi
+
+if [ ! -f "$SETTINGS_TEMPLATE" ]; then
+  echo "error: settings template not found at $SETTINGS_TEMPLATE" >&2
+  exit 1
+fi
+
+if [ ! -f "$PROFILE_TEMPLATE" ]; then
+  echo "error: profile template not found at $PROFILE_TEMPLATE" >&2
+  exit 1
+fi
+
+echo "kb-vault-materialize"
+echo "  KB_GIT_ROOT = $GIT_ROOT ($GIT_ROOT_SOURCE)"
+echo "  fork        = $AR9AV"
+echo
+
+# ── Materialization helper ─────────────────────────────────────────────────
+# Substitutes {GIT_ROOT} and (optionally) {NAME}/{VAULT_NAME} placeholders.
+# Atomic write (write-temp + rename) so concurrent readers never see a
+# half-written file.
+materialize() {
+  local template="$1"
+  local dest="$2"
+  local name="${3:-}"
+  local tmp
+  tmp="$(mktemp "${dest}.XXXXXX")"
+  if [ -n "$name" ]; then
+    sed -e "s|{GIT_ROOT}|$GIT_ROOT|g" \
+        -e "s|{NAME}|$name|g" \
+        -e "s|{VAULT_NAME}|$name|g" \
+        "$template" > "$tmp"
+  else
+    sed -e "s|{GIT_ROOT}|$GIT_ROOT|g" "$template" > "$tmp"
+  fi
+  mv "$tmp" "$dest"
+}
+
+# ── Per-vault materialization ──────────────────────────────────────────────
+for vault in "$@"; do
+  vault="$(realpath "$vault" 2>/dev/null || echo "$vault")"
+  if [ ! -d "$vault" ]; then
+    echo "✗ skip $vault — not a directory" >&2
+    continue
+  fi
+
+  # Derive a clean vault name from the directory basename. Convention:
+  # kb-<name> on disk → name = "<name>". Falls back to bare basename for
+  # vaults not following the kb- prefix convention.
+  base="$(basename "$vault")"
+  case "$base" in
+    kb-*) vname="${base#kb-}" ;;
+    *)    vname="$base" ;;
+  esac
+
+  echo "▶ $base (vault name: $vname)"
+
+  # ── 1. Choose profile template source ─────────────────────────────────
+  # Prefer per-vault .env.template (committed in vault for vault-specific
+  # defaults like SOURCES_DIR) over the fork's generic template.
+  if [ -f "$vault/.env.template" ]; then
+    profile_src="$vault/.env.template"
+    echo "    profile template: vault-local .env.template"
+  else
+    profile_src="$PROFILE_TEMPLATE"
+    echo "    profile template: fork default"
+  fi
+
+  # ── 2. Materialize .env (gitignored, machine-specific paths) ──────────
+  materialize "$profile_src" "$vault/.env" "$vname"
+
+  # ── 3. Materialize .claude/settings.json (gitignored, hook command paths) ─
+  mkdir -p "$vault/.claude/skills"
+  real_settings_template="$(realpath "$SETTINGS_TEMPLATE")"
+  materialize "$real_settings_template" "$vault/.claude/settings.json"
+
+  # ── 4. Symlink CLAUDE.md / AGENTS.md / GEMINI.md to fork (gitignored) ─
+  # All three names point at the same fork file — different agent
+  # frameworks look for different filenames.
+  ln -sfn "$AR9AV/AGENTS.md" "$vault/CLAUDE.md"
+  ln -sfn "$AR9AV/AGENTS.md" "$vault/AGENTS.md"
+  ln -sfn "$AR9AV/AGENTS.md" "$vault/GEMINI.md"
+
+  # ── 5. Skill symlinks ────────────────────────────────────────────────
+  # Prune stale symlinks (skills removed from upstream).
+  for link in "$vault"/.claude/skills/*; do
+    [ -L "$link" ] || continue
+    skill_name=$(basename "$link")
+    if [ ! -d "$AR9AV/.skills/$skill_name" ]; then
+      rm -f "$link"
+    fi
+  done
+  # Add or refresh symlinks for current upstream skills.
+  for skill_dir in "$AR9AV"/.skills/*/; do
+    skill_name=$(basename "$skill_dir")
+    ln -sfn "$AR9AV/.skills/$skill_name" "$vault/.claude/skills/$skill_name"
+  done
+
+  skill_count=$(ls -1 "$vault"/.claude/skills/ 2>/dev/null | wc -l)
+  echo "    ✓ materialized .env + .claude/settings.json + 3 instruction symlinks + $skill_count skill symlinks"
+done
+
+echo
+echo "done — $# vault(s) materialized"
