@@ -155,11 +155,7 @@ Everything lives in `.skills/`. Each skill is a markdown file the agent reads wh
 | Skill                   | What it does                                      | Slash Command            |
 | ----------------------- | ------------------------------------------------- | ------------------------ |
 | `wiki-setup`            | Initialize vault structure                        | `/wiki-setup`            |
-| `wiki-ingest`           | Distill documents into wiki pages                 | `/wiki-ingest`           |
-| `wiki-history-ingest`   | Unified history router (`claude` or `codex`)      | `/wiki-history-ingest <claude|codex>` |
-| `claude-history-ingest` | Mine your `~/.claude` conversations and memories  | `/claude-history-ingest` |
-| `codex-history-ingest`  | Mine your `~/.codex` sessions and rollout logs    | `/codex-history-ingest`  |
-| `data-ingest`           | Ingest any text — chat exports, logs, transcripts | `/data-ingest`           |
+| `wiki-ingest`           | Distill any source into wiki pages — documents, images, agent history (`~/.claude`, `~/.codex`), chat exports (ChatGPT, Slack, Discord), CSV/HTML, arbitrary text. Format dispatch in Step 1; references for per-format parsing. | `/wiki-ingest`           |
 | `wiki-status`           | Show what's ingested, what's pending, the delta   | `/wiki-status`           |
 | `wiki-rebuild`          | Archive, rebuild from scratch, or restore         | `/wiki-rebuild`          |
 | `wiki-query`            | Answer questions from the wiki                    | `/wiki-query`            |
@@ -201,11 +197,8 @@ After installing, your agent will automatically pick up the new skills alongside
 obsidian-wiki/
 ├── .skills/                          # ← Canonical skill definitions (source of truth)
 │   ├── wiki-setup/SKILL.md
-│   ├── wiki-ingest/SKILL.md
-│   ├── wiki-history-ingest/SKILL.md
-│   ├── claude-history-ingest/SKILL.md
-│   ├── codex-history-ingest/SKILL.md
-│   ├── data-ingest/SKILL.md
+│   ├── wiki-ingest/SKILL.md          # unified ingest (5 prior skills consolidated)
+│   │   └── references/               # per-format parsing: claude/codex/text/images/qmd
 │   ├── wiki-status/SKILL.md
 │   ├── wiki-rebuild/SKILL.md
 │   ├── wiki-query/SKILL.md
