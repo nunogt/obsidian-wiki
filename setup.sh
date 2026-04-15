@@ -20,14 +20,35 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/.skills"
 
+# Portability: relative-symlink mode requires `realpath --relative-to`
+# (coreutils ≥ 8.23, ~2014). On macOS, install via Homebrew's coreutils.
+if ! command -v realpath >/dev/null 2>&1; then
+  echo "⚠️   realpath not found — required for relative symlinks in in-repo agent dirs."
+  echo "    On macOS: brew install coreutils"
+  echo "    On Linux: install the coreutils package"
+  exit 1
+fi
+
 # Symlink every skill in SKILLS_DIR into TARGET_DIR.
 # Skips real directories to avoid data loss; updates stale symlinks.
+#
+# Mode "relative" (for in-repo agent dirs like .claude/skills/, .cursor/skills/,
+# etc.): writes a symlink target relative to TARGET_DIR. Result is portable
+# across machines — the same symlink works for any clone of this repo, never
+# shows as modified by `git status`, and survives `git checkout` / `git clone`
+# without needing post-checkout regeneration.
+#
+# Mode "absolute" (default; for global dirs in $HOME like ~/.gemini/...,
+# ~/.codex/..., ~/.agents/..., ~/.claude/skills/): writes an absolute path
+# because the symlink lives outside the repo and a relative path would
+# resolve elsewhere.
 install_skills() {
   local target_dir="$1"
   local label="$2"
+  local mode="${3:-absolute}"
   mkdir -p "$target_dir"
   for skill in "$SKILLS_DIR"/*/; do
-    local skill_name link_path
+    local skill_name link_path target
     skill_name="$(basename "$skill")"
     link_path="$target_dir/$skill_name"
     if [ -L "$link_path" ]; then
@@ -36,7 +57,12 @@ install_skills() {
       echo "⚠️   $link_path is a real directory, skipping symlink"
       continue
     fi
-    ln -s "${skill%/}" "$link_path"
+    if [ "$mode" = "relative" ]; then
+      target="$(realpath --relative-to="$target_dir" "${skill%/}")"
+    else
+      target="${skill%/}"
+    fi
+    ln -s "$target" "$link_path"
   done
   echo "✅  Installed global skills → $label"
 }
@@ -97,7 +123,7 @@ AGENT_DIRS=(
 )
 
 for agent_dir in "${AGENT_DIRS[@]}"; do
-  install_skills "$SCRIPT_DIR/$agent_dir" "$agent_dir/"
+  install_skills "$SCRIPT_DIR/$agent_dir" "$agent_dir/" "relative"
 done
 
 # ── Step 3: Install global skills ────────────────────────────
