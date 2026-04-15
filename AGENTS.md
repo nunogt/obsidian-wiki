@@ -4,12 +4,12 @@ A **skill-based framework** for building and maintaining an Obsidian knowledge b
 
 ## Configuration
 
-Read config in this order (first found wins):
+Read config in this order (first found wins — CWD takes precedence so multi-vault sessions always read their own context):
 
-1. **`~/.obsidian-wiki/config`** — global config, works from any project directory
-2. **`.env`** in the obsidian-wiki repo — local fallback
+1. **`.env`** in the current working directory — local config (CWD-based multi-vault setups; e.g. `kb-system/contexts/<name>/.env`)
+2. **`~/.obsidian-wiki/config`** — legacy global config fallback (single-vault setups)
 
-Both files set `OBSIDIAN_VAULT_PATH` (where the wiki lives). The global config also sets `OBSIDIAN_WIKI_REPO` (where this repo is cloned).
+Both files set `OBSIDIAN_VAULT_PATH` (where the wiki lives). CWD-based deployments set `OBSIDIAN_INVAULT_SOURCES_DIR` in `.env` to enable per-vault in-vault sources; the global config supports only single-vault single-path routing.
 
 ## Vault Structure
 
