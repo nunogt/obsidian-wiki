@@ -53,27 +53,30 @@ Skills live in `.skills/<name>/SKILL.md`. Match the user's intent to the right s
 | "rebuild" / "start over" / "archive" / "restore" | `wiki-rebuild` |
 | "link my pages" / "cross-reference" / "connect my wiki" | `cross-linker` |
 | "fix my tags" / "normalize tags" / "tag audit" | `tag-taxonomy` |
-| "update wiki" / "sync to wiki" / "save this to my wiki" | `wiki-update` |
+| "update wiki" / "sync to wiki" / "save this to my wiki" | `wiki-ingest` with an explicit source path (this fork has retired the old `wiki-update` skill) |
+| "pull upstream ar9av" / "update the fork" / "rebase on upstream" | `wiki-ar9av-update` |
 | "export wiki" / "export graph" / "graphml" / "neo4j" | `wiki-export` |
 | "create a new skill" | `skill-creator` |
 
 ## Cross-Project Usage
 
-The main use case: you're working in some other project and want to sync knowledge into your wiki or query it. Two global skills handle this — `wiki-update` and `wiki-query`. They work from any directory.
+This fork targets **multi-vault deployments** where each vault has its own context directory (`kb-system/contexts/<name>/`) containing per-profile symlinks. The current working directory of a Claude session selects the profile — there's no global config file routing every session to one vault.
 
-### wiki-update (write to wiki)
+### Writing to the wiki from another project
 
-1. Read `~/.obsidian-wiki/config` to get `OBSIDIAN_VAULT_PATH`
-2. Scan the current project: README, source structure, git log, package metadata
-3. Distill what's worth remembering (architecture decisions, patterns, trade-offs — not code listings)
-4. Write to `$VAULT/projects/<project-name>.md`, cross-linking to concept/entity pages as needed
-5. Update `.manifest.json`, `index.md`, and `log.md`
+Open a Claude session in the target vault's context directory, then run `/wiki-ingest` with the project path as a source:
 
-On repeat runs, it checks `last_commit_synced` in `.manifest.json` and only processes the delta via `git log <last_commit>..HEAD`.
+```bash
+cd /mnt/host/shared/git/kb-system/contexts/<vault>
+claude --dangerously-skip-permissions
+> /wiki-ingest /path/to/project
+```
 
-### wiki-query (read from wiki)
+The upstream `wiki-update` skill (which read a single global config file) has been retired in this fork — it was incompatible with the multi-vault model. See `concepts/wiki-update-deprecation` in the wiki-managed docs.
 
-1. Read `~/.obsidian-wiki/config` to get `OBSIDIAN_VAULT_PATH`
+### Reading from the wiki
+
+1. Read config in this order (first found wins): `.env` in CWD (multi-vault setups), then `~/.obsidian-wiki/config` (legacy single-vault fallback)
 2. Scan titles, tags, and `summary:` frontmatter fields first (cheap pass)
 3. Only open page bodies when the index pass can't answer
 4. Return a synthesized answer with `[[wikilink]]` citations
