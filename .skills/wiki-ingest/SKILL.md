@@ -149,7 +149,7 @@ If the source is not project-specific, put everything in global categories.
 ### Step 4: Plan Updates
 
 Before writing anything, plan which pages to update or create. Aim for 10-15 pages per ingest. For each:
-- Does this page already exist? (Check `index.md` and use Glob to search `OBSIDIAN_VAULT_PATH`)
+- Does this page already exist? Check `index.md` first, then Glob to search `OBSIDIAN_VAULT_PATH` — **excluding `_archives/`, `.obsidian/`, `_meta/`, `_raw/`, and any path matching `$OBSIDIAN_INVAULT_SOURCES_DIR` from `.env`** (typically `_sources/` in multi-vault deployments — see `.env.example`). Source files in those locations are not wiki pages; matching their filename would produce false positives for "page already exists".
 - If it exists, what new information does this source add?
 - If it's new, which category does it belong in?
 - What `[[wikilinks]]` should connect it to existing pages?

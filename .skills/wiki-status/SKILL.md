@@ -185,7 +185,9 @@ Where the delta report tells the user what's pending, insights mode tells them w
 
 ### What to compute
 
-**First, build the wikilink graph.** Glob all `.md` pages, extract every `[[wikilink]]`, and build:
+**First, build the wikilink graph.** Glob all `.md` pages in the vault, **excluding `_archives/`, `.obsidian/`, `_meta/`, `_raw/`, `index.md`, `log.md`, `_insights.md`, and any path matching `$OBSIDIAN_INVAULT_SOURCES_DIR` from `.env`** (typically `_sources/` in multi-vault deployments — see `.env.example`). If unset but `$OBSIDIAN_SOURCES_DIR` resolves under `$OBSIDIAN_VAULT_PATH`, treat the relative portion as implicit exclude + warn. In-vault sources are not part of the wikilink graph and would skew hub/cohesion metrics if included.
+
+Extract every `[[wikilink]]`, and build:
 - `incoming[page]` = count of other pages that link to this page
 - `outgoing[page]` = count of pages this page links out to
 - `tags[page]` = set of tags from frontmatter

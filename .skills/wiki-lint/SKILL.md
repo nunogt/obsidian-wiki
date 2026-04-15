@@ -28,8 +28,8 @@ Run these checks in order. Report findings as you go.
 Find pages with zero incoming wikilinks. These are knowledge islands that nothing connects to.
 
 **How to check:**
-- Glob all `.md` files in the vault
-- For each page, Grep the rest of the vault for `[[page-name]]` references
+- Glob all `.md` files in the vault, excluding `_archives/`, `.obsidian/`, `_meta/`, and **any path matching `$OBSIDIAN_INVAULT_SOURCES_DIR` from `.env`** (typically `_sources/` in multi-vault deployments — see `.env.example`). If unset but `$OBSIDIAN_SOURCES_DIR` resolves under `$OBSIDIAN_VAULT_PATH`, treat the relative portion as implicit exclude + warn.
+- For each remaining page, Grep the rest of the vault for `[[page-name]]` references
 - Pages with zero incoming links (except `index.md` and `log.md`) are orphans
 
 **How to fix:**
@@ -99,7 +99,8 @@ Claims that conflict across pages.
 Verify `index.md` matches the actual page inventory.
 
 **How to check:**
-- Compare pages listed in `index.md` to actual files on disk
+- Build the actual-files-on-disk set by globbing `.md` files in the vault, with the **same exclusion rules as check 1** (excludes `_archives/`, `.obsidian/`, `_meta/`, plus `$OBSIDIAN_INVAULT_SOURCES_DIR` if set). In-vault sources are not wiki pages — they shouldn't appear in `index.md` and shouldn't trigger an index-consistency complaint.
+- Compare that set against pages listed in `index.md`
 - Check that summaries in `index.md` still match page content
 
 ### 7. Provenance Drift

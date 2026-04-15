@@ -56,7 +56,11 @@ When the user wants to see the current state of tags:
 ### Step 1: Scan all pages
 
 ```
-Glob: $VAULT_PATH/**/*.md (excluding _archives/, .obsidian/, _meta/)
+Glob: $VAULT_PATH/**/*.md
+Exclude: _archives/, .obsidian/, _meta/
+Also exclude: any path matching $OBSIDIAN_INVAULT_SOURCES_DIR from .env (typically _sources/
+              in multi-vault deployments). If unset but $OBSIDIAN_SOURCES_DIR resolves under
+              $OBSIDIAN_VAULT_PATH, treat the relative portion as implicit exclude + warn.
 Extract: tags field from YAML frontmatter
 ```
 

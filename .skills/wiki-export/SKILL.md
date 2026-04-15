@@ -32,7 +32,11 @@ Pages with no `visibility/` tag, or tagged `visibility/public`, are always inclu
 
 ## Step 1: Build the Node and Edge Lists
 
-Glob all `.md` files in the vault (excluding `_archives/`, `_raw/`, `.obsidian/`, `index.md`, `log.md`, `_insights.md`). In filtered mode, also skip pages whose tags contain `visibility/internal` or `visibility/pii`.
+Glob all `.md` files in the vault, excluding:
+- `_archives/`, `_raw/`, `.obsidian/`, `index.md`, `log.md`, `_insights.md`
+- **Any path matching `$OBSIDIAN_INVAULT_SOURCES_DIR` from `.env`** (typically `_sources/` in multi-vault deployments — see `.env.example`). If unset but `$OBSIDIAN_SOURCES_DIR` resolves under `$OBSIDIAN_VAULT_PATH`, treat the relative portion as implicit exclude and warn.
+
+In filtered mode, also skip pages whose tags contain `visibility/internal` or `visibility/pii`.
 
 For each page, extract from frontmatter:
 - `id` — relative path from vault root, without `.md` extension (e.g. `concepts/transformers`)

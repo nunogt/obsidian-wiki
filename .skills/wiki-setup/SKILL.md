@@ -37,12 +37,15 @@ If `.env` doesn't exist, create it from `.env.example`. Ask the user for:
 
 ```bash
 mkdir -p "$OBSIDIAN_VAULT_PATH"/{concepts,entities,skills,references,synthesis,journal,projects,_archives,_raw,.obsidian}
+# Optional: also create _sources/ if this vault will hold its own ingest sources
+# (multi-vault deployments — see step 1 OBSIDIAN_INVAULT_SOURCES_DIR config).
 ```
 
 - `.obsidian/` — Obsidian's own config. Creates vault recognition.
 - `projects/` — Per-project knowledge (populated during ingest).
 - `_archives/` — Stores wiki snapshots for rebuild/restore operations.
 - `_raw/` — Staging area for unprocessed drafts. Drop rough notes here; `wiki-ingest` will promote them to proper wiki pages and delete the originals.
+- `_sources/` *(optional, multi-vault deployments)* — In-vault preserved source documents that get distilled into wiki pages but never deleted. When this directory exists and `OBSIDIAN_INVAULT_SOURCES_DIR=_sources` is set in `.env` (with `OBSIDIAN_SOURCES_DIR=$VAULT_PATH/_sources`), vault-scanning skills (cross-linker, tag-taxonomy, wiki-export, wiki-lint, wiki-status) skip its contents — preventing source files from being treated as wiki pages.
 
 ## Step 3: Create Special Files
 

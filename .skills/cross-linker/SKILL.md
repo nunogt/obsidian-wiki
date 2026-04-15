@@ -24,7 +24,11 @@ You are weaving the wiki's knowledge graph tighter by finding and inserting miss
 
 ## Step 1: Build the Page Registry
 
-Glob all `.md` files in the vault (excluding `_archives/`, `.obsidian/`). For each page, extract:
+Glob all `.md` files in the vault, excluding:
+- `_archives/`, `.obsidian/`
+- **Any path matching `$OBSIDIAN_INVAULT_SOURCES_DIR` from `.env`** (typically `_sources/` in multi-vault deployments where source documents live inside the vault — see `.env.example`). If unset but `$OBSIDIAN_SOURCES_DIR` resolves to a path under `$OBSIDIAN_VAULT_PATH`, treat the relative portion as an implicit exclude and warn the user to set `OBSIDIAN_INVAULT_SOURCES_DIR` explicitly.
+
+For each page, extract:
 
 - **Filename** (without `.md`) — this is the wikilink target
 - **Title** from frontmatter
