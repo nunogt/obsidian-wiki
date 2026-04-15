@@ -151,6 +151,8 @@ This mode lets the wiki compound from session activity automatically — closing
    ```
 7. **Delete the renamed handoff file** when the drain completes successfully. On error, leave it in place for retry.
 
+   **Cleanup-verification guidance.** `rm`'s exit code is authoritative — if `rm` exits 0, the file is gone. Do **not** shell-verify with a glob like `ls .pending-fold-back*` afterwards: when the glob matches nothing, bash passes the literal unexpanded pattern to `ls`, which exits 2 with *"No such file or directory."* That's not a real error — just a well-known shell footgun — but it surfaces as a red `Error:` in the session transcript and looks alarming. Either skip the verification entirely, or if a post-delete check is genuinely useful, use `ls <exact-path> 2>/dev/null || echo "(cleaned up)"` with the specific filename, not a glob.
+
 ### Optional flag: --max-clusters=N
 
 For partial drains when full processing would consume too much context budget, pass `--max-clusters=N`. Process up to N clusters; leave the rest in a fresh handoff file for the next drain.
