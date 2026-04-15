@@ -96,6 +96,13 @@ Follow `llm-wiki/SKILL.md §Page Template`. Required frontmatter: `title`, `cate
 
 **Cross-references.** When you add a link A → B, consider whether B should also link back to A.
 
+**Divergence check (concept pages only).** When writing or updating a `concepts/` page, generate a `## Counter-Arguments & Data Gaps` section identifying:
+- the strongest critique of the position the page describes,
+- sources that might disagree (existing wiki pages or external),
+- questions the current sources don't answer.
+
+An empty section is better than no section — the prompt alone surfaces bias and forces anti-thesis generation. If you ingest 5 sources praising X, the section should engage with the most sophisticated critique of X. Skip for non-concept categories (entities, references, journal, skills) where the framing doesn't apply.
+
 ### Step 5: Update Manifest, Index, Log
 
 **`.manifest.json`** — per-source entry:
