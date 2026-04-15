@@ -131,6 +131,20 @@ Always write `content_hash` — it's the primary skip signal on subsequent runs.
 
 Every created/updated page must conform to `llm-wiki/SKILL.md §Page Template` (required frontmatter fields, `summary:`, provenance markers + block, at least 2 wikilinks). Do not close the ingest without this check.
 
+## Post-Ingest Auto-Lint (cheap checks only)
+
+After a successful ingest, run a minimal lint pass against the pages just created or updated. Run **only the cheap checks**:
+
+1. **Orphans** — any new page with zero incoming wikilinks
+2. **Broken wikilinks** — any new wikilink whose target file doesn't exist
+3. **Missing required frontmatter** — title, category, tags, sources, summary, created, updated
+
+If any cheap check flags an issue, surface it immediately to the operator with the offending file path and brief reason. Do not block the ingest from completing — the manifest is already written. The lint output is informational so the operator can fix while context is fresh.
+
+The full 8-check `wiki-lint` audit (provenance drift, fragmented tag clusters, contradictions, etc.) stays on its existing schedule (`LINT_SCHEDULE` env var; operator cron). Auto-lint here is the always-on cheap-check tier; full lint is the periodic comprehensive tier.
+
+If `LINT_SCHEDULE=off` in `.env`, skip the auto-lint step entirely.
+
 ## Reference
 
 - `references/ingest-prompts.md` — extraction mental frameworks (knowledge, synthesis, cross-reference discovery)
