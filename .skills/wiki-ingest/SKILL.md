@@ -127,6 +127,46 @@ Always write `content_hash` — it's the primary skip signal on subsequent runs.
 - [TIMESTAMP] INGEST source="<path>" pages_created=N pages_updated=M mode=append|full|raw
 ```
 
+## Mode: --drain-pending (continuous fold-back)
+
+When invoked as `/wiki-ingest --drain-pending`, the source is the **fold-back queue** at `$OBSIDIAN_VAULT_PATH/.pending-fold-back.jsonl` rather than a file path on disk.
+
+The queue is populated by Claude Code hooks (Stop, PostCompact) configured in `contexts/<vault>/.claude/settings.json` per the harness-integration architecture. Each line is a JSON object with `type: "turn" | "compact_summary"`, a `transcript_path`, and either a 280-char preview (`turn`) or a full distilled summary (`compact_summary`).
+
+This mode lets the wiki compound from session activity automatically — closing the gist's *"shouldn't disappear into chat history"* gap without operator ceremony.
+
+### Drain procedure
+
+1. **Read the queue.** If absent or empty, log `DRAIN_PENDING entries=0` and exit.
+2. **Atomic handoff.** Rename `.pending-fold-back.jsonl` → `.pending-fold-back-<unix-ts>.jsonl` so concurrent drains don't conflict and new turns continue accumulating cleanly. Process the renamed file.
+3. **Cluster by topic.** Group queue entries thematically — same project, same problem-space, same conceptual thread. For `turn` entries, read the relevant slice of `transcript_path` to recover full context (you have the `last_assistant_preview` to seed the read). For `compact_summary` entries, the summary text is the full content.
+4. **Per cluster, evaluate wiki-worthiness in-context.** This is the dynamic LLM assessment — no turn-count gate, no fixed heuristic. Apply this rubric:
+   - **Wiki-worthy** if the cluster contains at least one of: a durable insight the operator might want to revisit; a non-obvious connection between concepts; a useful procedure that should be canonicalized; an entity worth tracking; an analysis whose conclusion outlives the session.
+   - **Not wiki-worthy** if the cluster is purely operational (file edits, build output, debugging steps that didn't reach a generalisable conclusion); pleasantries; or already-covered ground (an existing wiki page covers the same angle with no new addition).
+   - **Default to ingest when in doubt.** A false positive produces a redundant wiki update; a false negative loses signal forever. The asymmetry favours ingestion.
+5. **Ingest worthy clusters.** Use the standard process (Steps 2-5 above). Source path is the originating `transcript_path`. Set `source_type: "claude_conversation"` for `turn`-derived clusters or `"claude_compact"` for `compact_summary`-derived ones. Apply provenance markers heavily — these are conversation distillations, mostly inferred.
+6. **Log the drain outcome** to `log.md`:
+   ```
+   - [TIMESTAMP] DRAIN_PENDING clusters_evaluated=N clusters_ingested=M entries_processed=K
+   ```
+7. **Delete the renamed handoff file** when the drain completes successfully. On error, leave it in place for retry.
+
+### Optional flag: --max-clusters=N
+
+For partial drains when full processing would consume too much context budget, pass `--max-clusters=N`. Process up to N clusters; leave the rest in a fresh handoff file for the next drain.
+
+### When to invoke
+
+- **Automatically:** the agent should consider invoking at natural breakpoints in long sessions, prompted by the `additionalContext` reminders the SessionStart-after-compaction and sampled UserPromptSubmit hooks inject. See `AGENTS.md §Continuous Fold-Back Convention`.
+- **Forced:** the Stop hook returns `decision: block` when the queue exceeds `FOLD_BACK_BLOCK_THRESHOLD` (default 200 entries), forcing the agent to drain inline before stopping the turn.
+- **Manual:** operator invokes `/wiki-ingest --drain-pending` directly at any time.
+
+### Skip conditions
+
+- `$OBSIDIAN_VAULT_PATH/.fold-back-disabled` exists (operator escape hatch)
+- Queue file is absent or empty
+- Active handoff file already in progress (concurrent-drain check via lock file or rename pattern)
+
 ## Verify
 
 Every created/updated page must conform to `llm-wiki/SKILL.md §Page Template` (required frontmatter fields, `summary:`, provenance markers + block, at least 2 wikilinks). Do not close the ingest without this check.

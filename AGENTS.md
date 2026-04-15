@@ -54,6 +54,29 @@ Skills live in `.skills/<name>/SKILL.md`. Match the user's intent to the right s
 | "export wiki" / "export graph" / "graphml" / "neo4j" | `wiki-export` |
 | "create a new skill" | `skill-creator` |
 
+## Continuous Fold-Back Convention
+
+When operating in a vault context (CWD = `kb-system/contexts/<vault>/`), treat the conversation itself as a source. Per-turn `Stop` hooks accumulate markers in `$OBSIDIAN_VAULT_PATH/.pending-fold-back.jsonl`; `PostCompact` hooks capture compaction summaries. The queue grows continuously while you work.
+
+**Your job:** at natural breakpoints (end of a research thread, completed analysis, before extended idle), invoke `/wiki-ingest --drain-pending` to evaluate the queue and ingest wiki-worthy content. The drain happens **in this session** — you are the LLM doing the maintenance work, not a spawned secondary process.
+
+You don't need an explicit user request. Karpathy's gist:
+
+> *"You're in charge of sourcing, exploration, and asking the right questions. The LLM does all the grunt work — the summarizing, cross-referencing, filing, and bookkeeping that makes a knowledge base actually useful over time."*
+
+Filing is grunt work. Do it proactively when content warrants. Specifically:
+
+- After a multi-turn discussion that reached a durable conclusion
+- When you notice a cross-reference to existing wiki pages that warrants strengthening
+- When a new entity, concept, or skill has emerged that the wiki doesn't yet cover
+- When the SessionStart-after-compaction or UserPromptSubmit hooks inject `[fold-back reminder]` context
+- When the Stop hook blocks with `decision: block` and asks you to drain (queue threshold exceeded)
+- Before extended idle (so the queue doesn't accumulate beyond comfortable drain size)
+
+The `/wiki-ingest --drain-pending` mode includes dynamic LLM evaluation per cluster — you don't need to pre-filter. Default to ingest when in doubt; lint catches the noise.
+
+The operator can disable via `touch $OBSIDIAN_VAULT_PATH/.fold-back-disabled` (helpers respect the sentinel) or `LINT_SCHEDULE=off` in the profile `.env`. Otherwise: drain at your discretion, mid-task interrupts welcome from the operator.
+
 ## Cross-Project Usage
 
 This fork targets **multi-vault deployments** where each vault has its own context directory (`kb-system/contexts/<name>/`) containing per-profile symlinks. The current working directory of a Claude session selects the profile — there's no global config file routing every session to one vault.

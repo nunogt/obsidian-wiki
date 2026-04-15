@@ -145,6 +145,20 @@ This is the gist's **"two outputs"** rule (community theme @bluewater8008 rule 4
 
 If the answer surfaced nothing wiki-update-worthy (a simple lookup, a question fully covered by one page), skip Output 2 — empty suggestion lists are noise.
 
+### Step 5c: Append to fold-back queue (optional)
+
+If the query produced a meaningful synthesis worth preserving (especially Output 2 suggestions the operator approved or any novel cross-page connection), also append a marker to `$OBSIDIAN_VAULT_PATH/.pending-fold-back.jsonl`:
+
+```json
+{"type": "query_synthesis", "ts": "<iso-timestamp>", "query": "<...>",
+ "answer_preview": "<first 280 chars>", "suggested_updates": ["..."],
+ "session_id": "<...>"}
+```
+
+This ensures query-driven insights compound the wiki even when no explicit ingest follows. The `/wiki-ingest --drain-pending` mode (see `wiki-ingest/SKILL.md §Mode: --drain-pending`) will evaluate them on the next drain cycle along with per-turn captures from the Stop hook.
+
+Skip this append if the query was a simple lookup — only meaningful syntheses warrant queueing. The fold-back queue is for content that compounds; trivial Q&A doesn't.
+
 ### Step 6: Log the Query
 
 Append to `log.md`:
