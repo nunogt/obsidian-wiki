@@ -117,6 +117,34 @@ Compose your answer from wiki content:
 - If the wiki doesn't cover something, say so explicitly
 - Suggest which sources might fill the gap
 
+### Step 5b: Two-Output Rule — propose wiki updates
+
+Every query produces **two outputs**:
+
+1. **Output 1** — the synthesized answer (Step 5 above) shown to the user.
+2. **Output 2** — 1-3 suggested wiki updates based on what this query surfaced.
+
+Output 2 is non-binding: surface the suggestions, don't apply them silently. Examples of update candidates:
+- A new wikilink that should exist (page A discusses concept B but doesn't link to `[[B]]`)
+- A claim on an existing page that this query revealed needs strengthening or qualification
+- A new concept/synthesis page worth creating because the query crossed a gap multiple existing pages skirt
+- An `^[ambiguous]` marker that should be added because two candidate pages disagree
+
+Format Output 2 as:
+
+> **Suggested wiki updates** (you said the magic words; here's what I noticed):
+> - `[[page-x]]` should link to `[[page-y]]` — they cover related ground
+> - `concepts/foo` claim about Z is contradicted by `references/bar` — consider `^[ambiguous]` marker
+> - Could create `synthesis/<topic>` — this query bridged 3 pages that don't currently cite each other
+>
+> *Reply "apply" to make these edits, "apply 1,3" for a subset, or ignore.*
+
+If the operator approves, apply the suggested edits as a small follow-up `/wiki-ingest`-style touch (frontmatter update, link addition, marker insertion). Log as `LINT_FROM_QUERY` in `log.md`.
+
+This is the gist's **"two outputs"** rule (community theme @bluewater8008 rule 4): every query should compound the wiki, not just consume it. Without this rule, explorations stay in chat history and the wiki only grows from explicit `/wiki-ingest`. With it, every query is a small fold-back opportunity.
+
+If the answer surfaced nothing wiki-update-worthy (a simple lookup, a question fully covered by one page), skip Output 2 — empty suggestion lists are noise.
+
 ### Step 6: Log the Query
 
 Append to `log.md`:
