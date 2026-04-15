@@ -15,7 +15,10 @@ You are answering questions against a compiled Obsidian wiki, not raw source doc
 
 ## Before You Start
 
-1. Read `~/.obsidian-wiki/config` to get `OBSIDIAN_VAULT_PATH` (works from any project). Fall back to `.env` if you're inside the obsidian-wiki repo.
+1. Read configuration in this order (first found wins — CWD takes precedence so multi-vault sessions always read their own context):
+   a. `.env` in the current working directory — local config (CWD-based multi-vault setups; works from any context directory)
+   b. `~/.obsidian-wiki/config` — legacy global config fallback (single-vault setups)
+   Pull `OBSIDIAN_VAULT_PATH` from whichever resolves first.
 2. Read `$OBSIDIAN_VAULT_PATH/index.md` to understand the wiki's scope and structure
 
 ## Visibility Filter (optional)
